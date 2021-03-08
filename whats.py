@@ -32,7 +32,7 @@ def half_char(u, d):
     return half_matrix[(u,d)]
 
 
-def qr_half(txt):
+def qr_half(txt, printt=False):
     a = txt.split('\n')
     i = 0
     r = ''
@@ -44,7 +44,9 @@ def qr_half(txt):
             l2 += '1'*len(l1)
         i += 1
         r += ''.join(map(half_char,list(l1),list(l2)))+'\n'
+
     print(r)
+    
 
 
 def QR(text):
@@ -77,19 +79,23 @@ b = ""
 while stop == 0:
     try:
         # VERIFICANDO O QR CODE SE ESTE ESTIVR VISÍVEL
+        #print('QR EXISTE')
         a = driver.find_element_by_xpath('//div[@class="_3jid7"]').get_attribute('data-ref')
         if a != b:
             QR(a)
             b = a
+            #print('QR DIFERENTE')
             sleep(0.5)
     except:
         try:
             # SE O QR CODE NÃO ESTIVER VISÍVEL, CLICAR PARA RECARREGAR
+            #print('SUMIU')
             driver.find_element_by_xpath('//div[@class="_3jid7 _267ZZ"]').click()
             sleep(1)
+            #print('cliquei')
         except:
             stop = 1
-            
+
 print('→ ' + bcolors.OKGREEN + 'INFO: ' + bcolors.END + 'Logando...')
 
 
