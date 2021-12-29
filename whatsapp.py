@@ -1,4 +1,5 @@
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from time import sleep
@@ -8,12 +9,12 @@ import pyqrcode
 import os
 
 
-DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.55 Safari/537.36 Edg/96.0.1054.43'
 
 
 options = Options()
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
-options.add_argument("user-data-dir=C:\\Users\\Novo\\AppData\\Local\\Google\\Chrome\\User Data\\bot_data")
+#options.add_argument("user-data-dir=C:\\Users\\Novo\\AppData\\Local\\Google\\Chrome\\User Data\\bot_data")
 options.add_argument('--user-agent=' + DEFAULT_USER_AGENT)
 options.add_argument('--headless')
 options.add_argument('--window-size=1920x1080')
@@ -22,7 +23,7 @@ options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--no-sandbox')
 
 
-CHROMEDRIVER = 'chromedriver.exe'
+CHROMEDRIVER = ChromeDriverManager().install()
 
 
 def half_char(u, d):
@@ -76,14 +77,14 @@ class Nagazap():
         self.start_driver()
         self.wait_scan()
         self.wait_login()
-        self.select_user('Clareira filosófica')
+        self.search_user("Clareira Filosofica")
         self.wait_messages()
 
 
     def start_driver(self):
         """ Instancia o webdriver (chromedriver) e logo em seguida entra na página do whatsapp """
 
-        self.driver = webdriver.Chrome(CHROMEDRIVER, options=options)
+        self.driver = webdriver.Chrome("chromedriver.exe", options=options)
         os.system('cls')
 
         print('→ ' + bcolors.OKGREEN + 'INFO: ' + bcolors.END + 'Browser inicializado')
@@ -101,8 +102,7 @@ class Nagazap():
         while stop == 0:
             try:
                 # VERIFICANDO O QR CODE SE ESTE ESTIVR VISÍVEL
-                #print('QR EXISTE')
-                a = self.driver.find_element_by_xpath('//div[@class="_3jid7"]').get_attribute('data-ref')
+                a = self.driver.find_element_by_xpath('//div[@data-ref]').get_attribute('data-ref')
                 if a != b:
                     QR(a)
                     b = a
@@ -111,10 +111,8 @@ class Nagazap():
             except:
                 try:
                     # SE O QR CODE NÃO ESTIVER VISÍVEL, CLICAR PARA RECARREGAR
-                    #print('SUMIU')
-                    self.driver.find_element_by_xpath('//div[@class="_3jid7 _267ZZ"]').click()
+                    self.driver.find_element_by_xpath('//div/span/button').click()
                     sleep(1)
-                    #print('cliquei')
                 except:
                     stop = 1
 
@@ -143,18 +141,15 @@ class Nagazap():
         sleep(1.5)
 
 
-    def select_user(self, nome):
-        self.driver.find_element_by_xpath(f'//span[@title="{nome}"]').click()
-
-
     def old_messages(self):
-        msg = self.driver.find_elements_by_xpath('//span[@class="_3-8er selectable-text copyable-text"]')[-1].text
-        time = self.driver.find_elements_by_xpath('//span[@class="_17Osw"]')[-1].text
+        msg = [x.text for x in self.driver.find_elements_by_xpath('//div[@data-pre-plain-text]/div/span')][-2]
+        time = [x.text for x in self.driver.find_elements_by_xpath('//div[@data-testid="msg-meta"]/span')][-2]
         return (msg, time)
 
 
     def send_messages(self, message):
-        campo_de_msg = self.driver.find_elements_by_xpath('//div[@class="_2_1wd copyable-text selectable-text" and @data-tab="6"]')[0]
+        campo_de_msg = self.driver.find_element_by_xpath('//div[@role="textbox" and @spellcheck="true"]')
+        campo_de_msg.click()
         campo_de_msg.clear()
         campo_de_msg.send_keys(message)
         campo_de_msg.send_keys(Keys.ENTER)
@@ -166,25 +161,47 @@ class Nagazap():
                 self.antiga = self.old_messages()
                 sleep(0.2)
             else:
-                new = self.old_messages()
+                new = self.old_messages()                
                 if self.antiga != new:
                     self.antiga = new
                     
                     argumento = new[0].split()[0].lower()
-                    query = ' '.join(new[0].split()[1:])
+                    query = ' '.join(new[0].split()[1:])    
+                            
                     if argumento == '!wiki':
                         try:
                             sumary = wikipedia.summary(query)
                             self.send_messages(sumary)
-                        except:
+                        except Exception as e:
                             print(argumento, 'Não executado com sucesso!')
+                            print(e)
                         sleep(0.2)
                     else:
                         sleep(0.2)
                 
+
+    def verify_user(self):
+        stop = 1
+        while stop == 1:
+            try:
+                self.driver.find_element_by_xpath('//header/div[2]/div/div/span').text
+                print('ESSE USUÁRIO EXISTE')
+                stop = 0
+            except:
+                try:
+                    self.driver.find_element_by_xpath('//div[@data-animate-modal-popup="true"]')
+                    text = self.driver.find_element_by_xpath('//div[@data-animate-modal-popup="true"]/div').text
+                    if text == 'O número de telefone compartilhado através de url é inválido.\nOK':
+                        print("USUÁRIO NAO EXISTE")
+                        stop = 0
+                except:
+                    pass                
 
                   
 whats = Nagazap()
 input()
 ##url = pyqrcode.create('http://uca.edu')
 ##print(url.terminal(quiet_zone=1))
+
+
+
